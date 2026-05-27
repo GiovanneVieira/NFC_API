@@ -1,21 +1,15 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma-modules/prisma/prisma';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
+import { PrismaService } from 'src/prisma-modules/prisma/prisma';
 
-@Injectable()
-export class AuthService {
-  public readonly authClient: any;
 
-  constructor(private prismaService: PrismaService) {
-    this.authClient = betterAuth({
-      database: prismaAdapter(prismaService, {
-        provider: 'postgresql', // or "mysql", "postgresql", ...etc
-      }),
-      emailAndPassword: {
+const prismaService = new PrismaService();
+export const auth = betterAuth({
+    database: prismaAdapter(prismaService, {
+        provider: 'postgresql',
+    }),
+    emailAndPassword: {
         enabled: true,
-      },
-      secret: process.env.BETTER_AUTH_SECRET,
-    });
-  }
-}
+    },
+    secret: process.env.BETTER_AUTH_SECRET,
+});

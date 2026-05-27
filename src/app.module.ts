@@ -2,12 +2,11 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
-import { AuthController } from './auth/auth.controller';
-import { AuthService } from './auth/auth';
-import { AuthModule } from './auth/auth.module';
 import { UserService } from './user/user';
 import { UserController } from './user/user.controller';
 import { UserModule } from './user/user.module';
+import { AuthModule } from '@thallesp/nestjs-better-auth';
+import { auth } from './auth/auth';
 
 @Module({
   imports: [
@@ -15,10 +14,12 @@ import { UserModule } from './user/user.module';
       envFilePath: '.env',
       isGlobal: true,
     }),
-    AuthModule,
+    AuthModule.forRoot({
+      auth
+    }),
     UserModule,
   ],
-  controllers: [AppController, AuthController, UserController],
-  providers: [AppService, AuthService, UserService],
+  controllers: [AppController, UserController],
+  providers: [AppService, UserService],
 })
 export class AppModule {}
