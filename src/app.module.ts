@@ -8,6 +8,7 @@ import { PrismaModule } from './prisma-modules/prisma/prisma.module';
 import { PrismaService } from './prisma-modules/prisma/prisma';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
+import { auth } from './auth/auth';
 
 @Module({
   imports: [
@@ -16,21 +17,8 @@ import { prismaAdapter } from 'better-auth/adapters/prisma';
       isGlobal: true,
     }),
     PrismaModule,
-    AuthModule.forRootAsync({
-      imports: [PrismaModule],
-      inject: [PrismaService],
-      useFactory: (prismaService: PrismaService) => {
-        return {
-          auth: betterAuth({
-            database: prismaAdapter(prismaService, {
-              provider: 'postgresql',
-            }),
-            emailAndPassword: {
-              enabled: true,
-            },
-          }),
-        };
-      },
+    AuthModule.forRoot({
+      auth
     }),
     UserModule,
   ],
