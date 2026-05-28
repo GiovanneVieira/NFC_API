@@ -2,11 +2,12 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
-import { UserService } from './user/user';
-import { UserController } from './user/user.controller';
 import { UserModule } from './user/user.module';
 import { AuthModule } from '@thallesp/nestjs-better-auth';
-import { auth } from './auth/auth';
+import { PrismaModule } from './prisma-modules/prisma/prisma.module';
+import { PrismaService } from './prisma-modules/prisma/prisma';
+import { betterAuth } from 'better-auth';
+import { prismaAdapter } from 'better-auth/adapters/prisma';
 
 @Module({
   imports: [
@@ -14,12 +15,26 @@ import { auth } from './auth/auth';
       envFilePath: '.env',
       isGlobal: true,
     }),
-    AuthModule.forRoot({
-      auth
+    PrismaModule,
+    AuthModule.forRootAsync({
+      imports: [PrismaModule],
+      inject: [PrismaService],
+      useFactory: (prismaService: PrismaService) => {
+        return {
+          auth: betterAuth({
+            database: prismaAdapter(prismaService, {
+              provider: 'postgresql',
+            }),
+            emailAndPassword: {
+              enabled: true,
+            },
+          }),
+        };
+      },
     }),
     UserModule,
   ],
-  controllers: [AppController, UserController],
-  providers: [AppService, UserService],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}

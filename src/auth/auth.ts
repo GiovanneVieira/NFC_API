@@ -1,15 +1,31 @@
-import { betterAuth } from 'better-auth';
-import { prismaAdapter } from 'better-auth/adapters/prisma';
-import { PrismaService } from 'src/prisma-modules/prisma/prisma';
+import { betterAuth } from "better-auth";
+import { prismaAdapter } from "better-auth/adapters/prisma";
+import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
 
-const prismaService = new PrismaService();
+const adapter = new PrismaPg(pool);
+
+const prisma = new PrismaClient({ adapter });
+
 export const auth = betterAuth({
-    database: prismaAdapter(prismaService, {
-        provider: 'postgresql',
-    }),
-    emailAndPassword: {
-        enabled: true,
-    },
-    secret: process.env.BETTER_AUTH_SECRET,
+  database: prismaAdapter(prisma, {
+    provider: "postgresql",
+  }),
+  emailAndPassword: {
+    enabled: true,
+  },
+  user: {
+    additionalFields: {
+        RA: {
+            type: "string",
+            required: true,
+            input: true,
+        }
+    }
+  }
 });

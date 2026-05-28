@@ -5,6 +5,8 @@ services:
       - "3000:3000"
     env_file:
       - .env
+    volumes:
+      - /app/node_modules
     develop:
       watch:
         - action: sync+restart
@@ -13,6 +15,7 @@ services:
           ignore:
             - node_modules/
             - dist/
+            - prisma/
         - action: rebuild
           path: package*.json
         - action: rebuild

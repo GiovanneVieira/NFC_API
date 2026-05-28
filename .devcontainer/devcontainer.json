@@ -1,0 +1,35 @@
+{
+  "name": "NFC API - NestJS & Better Auth",
+  "dockerComposeFile": ["../docker-compose.yaml"],
+  "service": "api",
+  "workspaceFolder": "/app",
+  
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "nestjs.nestjs-blueprint",
+        "Prisma.prisma",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        }
+      }
+    },
+    "jetbrains": {
+      "plugins": [
+        "com.intellij.database",
+        "JavaScript",
+        "NodeJS"
+      ]
+    }
+  },
+
+  "postCreateCommand": "echo 'Devcontainer inicializado com sucesso! O Docker Compose Watch está monitorando as alterações.'",
+
+  "remoteUser": "root"
+}
