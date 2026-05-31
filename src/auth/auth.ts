@@ -3,22 +3,39 @@ import { openAPI, jwt } from 'better-auth/plugins';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { Pool } from 'pg';
 
-const pool = new Pool({
+const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
 });
 
-const adapter = new PrismaPg(pool);
-
 const prisma = new PrismaClient({ adapter });
 
+const baseURL = process.env.BETTER_AUTH_URL ?? 'http://localhost:3000';
+
+/**
+ * Origens confiáveis para CORS das rotas de autenticação.
+ * Configurável via TRUSTED_ORIGINS (separado por vírgula). O default cobre o
+ * Expo (web/dev) e a própria API.
+ */
+const trustedOrigins = (
+  process.env.TRUSTED_ORIGINS ??
+  'http://localhost:8081,http://localhost:19006,http://localhost:3000'
+)
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 export const auth = betterAuth({
+  baseURL,
+  secret: process.env.BETTER_AUTH_SECRET,
+  trustedOrigins,
   database: prismaAdapter(prisma, {
     provider: 'postgresql',
   }),
   emailAndPassword: {
     enabled: true,
+    minPasswordLength: 8,
+    autoSignIn: true,
   },
   user: {
     additionalFields: {
@@ -31,6 +48,25 @@ export const auth = betterAuth({
         type: 'string',
         required: false,
         input: true,
+        defaultValue: 'STUDENT',
+      },
+      // Dados da carteirinha: definidos pela instituição (não no sign-up).
+      // Declarados aqui para o better-auth ficar ciente das colunas (evita
+      // drift com `auth generate`).
+      course: {
+        type: 'string',
+        required: false,
+        input: false,
+      },
+      cpf: {
+        type: 'string',
+        required: false,
+        input: false,
+      },
+      cardValidity: {
+        type: 'date',
+        required: false,
+        input: false,
       },
     },
   },
@@ -46,13 +82,12 @@ export const auth = betterAuth({
     jwt({
       jwt: {
         expiresIn: '15m',
-        issuer: process.env.BETTER_AUTH_URL,
-        audience: process.env.BETTER_AUTH_URL,
-        definePayload: ({ user }) => ({
-          id: user.id,
-          email: user.email,
-          RA: user.RA,
-        }),
+        issuer: baseURL,
+        audience: baseURL,
+        definePayload: ({ user }) => {
+          const u = user as { id: string; email: string; RA?: string };
+          return { id: u.id, email: u.email, RA: u.RA };
+        },
       },
       jwks: {
         keyPairConfig: {

@@ -48,6 +48,9 @@ lerna-debug.log*
 .temp
 .tmp
 
+# local testing harness (ephemeral embedded postgres, not part of the repo)
+.local-testing/
+
 # Runtime data
 pids
 *.pid
