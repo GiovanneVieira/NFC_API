@@ -10,9 +10,9 @@ services:
     # conecte no Postgres/Redis/MQTT corretos, independente do .env.development
     # (que usa 'localhost' para quando o Nest roda no host pelo terminal).
     environment:
-      DATABASE_URL: postgresql://admin:admin@postgres:5432/nfc_local_db?schema=public
-      REDIS_URL: redis://redis:6379
-      MQTT_BROKER_URL: mqtt://mosquitto:1883
+      - DATABASE_URL=postgresql://admin:admin@postgres:5432/nfc_local_db?schema=public
+      - REDIS_URL=redis://redis:6379
+      - MQTT_BROKER_URL=mqtt://mosquitto:1883
     volumes:
       - /app/node_modules
     develop:
@@ -40,7 +40,7 @@ services:
     container_name: nfc-postgres
     restart: unless-stopped
     ports:
-      - '5432:5432'
+      - '5433:5432'
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin

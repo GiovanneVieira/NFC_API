@@ -3,32 +3,22 @@ import { openAPI, jwt } from 'better-auth/plugins';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { createTrustedOriginsChecker } from 'src/utils/cors.utils';
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
 });
 
 const prisma = new PrismaClient({ adapter });
-
 const baseURL = process.env.BETTER_AUTH_URL ?? 'http://localhost:3000';
-
-/**
- * Origens confiáveis para CORS das rotas de autenticação.
- * Configurável via TRUSTED_ORIGINS (separado por vírgula). O default cobre o
- * Expo (web/dev) e a própria API.
- */
-const trustedOrigins = (
-  process.env.TRUSTED_ORIGINS ??
-  'http://localhost:8081,http://localhost:19006,http://localhost:3000'
-)
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean);
 
 export const auth = betterAuth({
   baseURL,
   secret: process.env.BETTER_AUTH_SECRET,
-  trustedOrigins,
+  
+  // ── INJEÇÃO LIMPA E TRATADA ────────────────────────────────────────
+  trustedOrigins: createTrustedOriginsChecker(process.env.CORS_ORIGINS),
+  
   database: prismaAdapter(prisma, {
     provider: 'postgresql',
   }),
@@ -39,35 +29,11 @@ export const auth = betterAuth({
   },
   user: {
     additionalFields: {
-      RA: {
-        type: 'string',
-        required: true,
-        input: true,
-      },
-      role: {
-        type: 'string',
-        required: false,
-        input: true,
-        defaultValue: 'STUDENT',
-      },
-      // Dados da carteirinha: definidos pela instituição (não no sign-up).
-      // Declarados aqui para o better-auth ficar ciente das colunas (evita
-      // drift com `auth generate`).
-      course: {
-        type: 'string',
-        required: false,
-        input: false,
-      },
-      cpf: {
-        type: 'string',
-        required: false,
-        input: false,
-      },
-      cardValidity: {
-        type: 'date',
-        required: false,
-        input: false,
-      },
+      RA: { type: 'string', required: true, input: true },
+      role: { type: 'string', required: false, input: true, defaultValue: 'STUDENT' },
+      course: { type: 'string', required: false, input: false },
+      cpf: { type: 'string', required: false, input: false },
+      cardValidity: { type: 'date', required: false, input: false },
     },
   },
   session: {
@@ -90,10 +56,7 @@ export const auth = betterAuth({
         },
       },
       jwks: {
-        keyPairConfig: {
-          alg: 'EdDSA',
-          crv: 'Ed25519',
-        },
+        keyPairConfig: { alg: 'EdDSA', crv: 'Ed25519' },
         rotationInterval: 60 * 60 * 24 * 30,
         gracePeriod: 60 * 60 * 24 * 7,
       },
