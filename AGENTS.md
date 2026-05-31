@@ -149,3 +149,11 @@ Sempre que criar uma nova feature (ex: `presenca`), você deve gerar ou atualiza
 ### 2. Absence & Frequency Computation Engine
 - **Cálculo de Faltas:** O total de faltas de um aluno em uma matéria é calculado de forma computada no Service: conta-se o número total de aulas (`Aula`) daquela `Materia` que possuem o status `FECHADA` menos o número de registros de presença (`Presenca`) que o aluno possui para aquelas mesmas aulas.
 - **Formulação de Frequência:** A taxa de frequência é dada pela divisão das presenças confirmadas pelo total de aulas fechadas da disciplina. Impeça divisões por zero tratando cenários onde nenhuma aula foi realizada ainda.
+## Delphi TODO Execution (NFC_API)
+
+- Antes de iniciar qualquer feature/bugfix/refactor relevante, criar um TODO tatico em `foundation_documentation/todos/active/`.
+- Para criar TODO novo no template oficial do Delphi:
+  - `npm run todo:new -- <nome-do-todo>`
+- Para validar estrutura e gates do TODO:
+  - `npm run todo:validate -- --todo foundation_documentation/todos/active/<arquivo>.md`
+- Artefatos temporarios de validacao ficam em `foundation_documentation/artifacts/tmp/`.
