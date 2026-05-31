@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -23,20 +22,20 @@ enum PresencaType {
 }
 
 model User {
-  id            String   @id @default(uuid())
-  email         String   @unique
+  id            String    @id @default(uuid())
+  email         String    @unique
   name          String
-  RA            String   @unique
-  role          Role     @default(STUDENT)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  emailVerified Boolean  @default(false)
+  RA            String    @unique
+  role          Role      @default(STUDENT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  emailVerified Boolean   @default(false)
   image         String?
 
   // Dados da carteirinha estudantil (preenchidos pela instituição, não no sign-up).
-  course       String?
-  cpf          String?   @unique
-  cardValidity DateTime?
+  course        String?
+  cpf           String?   @unique
+  cardValidity  DateTime?
 
   sessions           Session[]
   accounts           Account[]
@@ -44,6 +43,8 @@ model User {
   matriculas         Matricula[]
   materiasLecionadas Materia[]
   notas              Nota[]
+
+  @@map("user_table")
 }
 
 model Session {
@@ -58,6 +59,7 @@ model Session {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@map("session_table")
 }
 
 model Account {
@@ -77,6 +79,7 @@ model Account {
   updatedAt             DateTime  @updatedAt
 
   @@index([userId])
+  @@map("account_table")
 }
 
 model Verification {
@@ -88,6 +91,7 @@ model Verification {
   updatedAt  DateTime @updatedAt
 
   @@index([identifier])
+  @@map("verification_table")
 }
 
 model Jwks {
@@ -96,6 +100,8 @@ model Jwks {
   privateKey String
   createdAt  DateTime  @default(now())
   expiresAt  DateTime?
+
+  @@map("jwks_table")
 }
 
 model Materia {
@@ -113,6 +119,7 @@ model Materia {
   notas       Nota[]
 
   @@index([professorId])
+  @@map("materia_table")
 }
 
 model Aula {
@@ -128,6 +135,7 @@ model Aula {
   presencas Presenca[]
 
   @@index([materiaId])
+  @@map("aula_table")
 }
 
 model Presenca {
@@ -144,6 +152,7 @@ model Presenca {
   @@unique([alunoId, aulaId])
   @@index([alunoId])
   @@index([aulaId])
+  @@map("presenca_table")
 }
 
 model Matricula {
@@ -159,6 +168,7 @@ model Matricula {
   @@unique([alunoId, materiaId])
   @@index([alunoId])
   @@index([materiaId])
+  @@map("matricula_table")
 }
 
 // Notas/avaliações de um aluno em uma matéria, por período letivo (term, ex.: "2026/01").
@@ -182,4 +192,5 @@ model Nota {
   @@unique([alunoId, materiaId, term])
   @@index([alunoId])
   @@index([materiaId])
+  @@map("nota_table")
 }

@@ -21,6 +21,7 @@ import { auth } from './auth/auth';
     PrismaModule,
     AuthModule.forRoot({
       auth,
+      disableTrustedOriginsCors: true, // Desativa o CORS interno do Better Auth para usar o CORS global do NestJS
     }),
     UserModule,
     MateriaModule,

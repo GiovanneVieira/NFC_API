@@ -83,6 +83,9 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
       PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: 'False'
+      PGADMIN_LISTEN_ADDRESS: '0.0.0.0'
+      PGADMIN_CONFIG_CONSOLE_LOG_LEVEL: '30' 
     volumes:
       - ./pgadmin/servers.json:/pgadmin4/servers.json
     depends_on:

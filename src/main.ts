@@ -10,18 +10,20 @@ import { getCleanOrigins } from 'src/utils/cors.utils';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
+    // Desabilita o body parser nativo para o Better Auth ler o corpo bruto das requisições
     bodyParser: false,
   });
 
-  // ── CORS CONFIGURADO USANDO O UTILITÁRIO ────────────────────────────
+  const isDevelopment = process.env.NODE_ENV === 'development';
   const corsOrigins = getCleanOrigins(process.env.CORS_ORIGINS);
 
+  // Configuração global de CORS
   app.enableCors({
-    origin: corsOrigins.length > 0 ? corsOrigins : true,
+    // Em dev libera tudo (true) para aceitar os links dinâmicos do Expo Go. Em prod, usa o .env
+    origin: isDevelopment ? true : (corsOrigins.length > 0 ? corsOrigins : true),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
-  // ────────────────────────────────────────────────────────────────────
 
   const httpAdapterHost = app.get(HttpAdapterHost);
   

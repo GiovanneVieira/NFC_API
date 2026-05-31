@@ -3,7 +3,7 @@ import { openAPI, jwt } from 'better-auth/plugins';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { createTrustedOriginsChecker } from 'src/utils/cors.utils';
+import { getCleanOrigins } from 'src/utils/cors.utils'; 
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
@@ -11,13 +11,19 @@ const adapter = new PrismaPg({
 
 const prisma = new PrismaClient({ adapter });
 const baseURL = process.env.BETTER_AUTH_URL ?? 'http://localhost:3000';
+const isDevelopment = process.env.NODE_ENV === 'development';
 
 export const auth = betterAuth({
   baseURL,
   secret: process.env.BETTER_AUTH_SECRET,
   
-  // ── INJEÇÃO LIMPA E TRATADA ────────────────────────────────────────
-  trustedOrigins: createTrustedOriginsChecker(process.env.CORS_ORIGINS),
+  // Array estrito de strings para validação de tipos
+  trustedOrigins: getCleanOrigins(process.env.CORS_ORIGINS),
+  
+  // Controle de segurança condicional
+  advanced: {
+    disableOriginCheck: isDevelopment, // true em dev (libera Expo), false em prod (blindagem máxima)
+  },
   
   database: prismaAdapter(prisma, {
     provider: 'postgresql',
