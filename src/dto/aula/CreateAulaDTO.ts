@@ -1,4 +1,10 @@
-import { IsUUID, IsDateString, IsEnum } from 'class-validator';
+import {
+  IsUUID,
+  IsDateString,
+  IsEnum,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { AulaStatus } from 'src/model/AulaModel';
 
 export class CreateAulaDTO {
@@ -8,6 +14,11 @@ export class CreateAulaDTO {
   @IsDateString()
   dataHora!: string;
 
+  @IsOptional()
   @IsEnum(AulaStatus)
-  status!: AulaStatus;
+  status?: AulaStatus;
+
+  @IsOptional()
+  @IsString()
+  sala?: string;
 }

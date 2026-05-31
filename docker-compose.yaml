@@ -5,6 +5,14 @@ services:
       - '3000:3000'
     env_file:
       - .env.development
+    # Dentro da rede do compose, a API acessa os serviços pelos NOMES
+    # (não 'localhost'). Estes overrides garantem que o container 'api'
+    # conecte no Postgres/Redis/MQTT corretos, independente do .env.development
+    # (que usa 'localhost' para quando o Nest roda no host pelo terminal).
+    environment:
+      - DATABASE_URL=postgresql://admin:admin@postgres:5432/nfc_local_db?schema=public
+      - REDIS_URL=redis://redis:6379
+      - MQTT_BROKER_URL=mqtt://mosquitto:1883
     volumes:
       - /app/node_modules
     develop:
@@ -47,7 +55,7 @@ services:
     container_name: nfc-redis
     restart: unless-stopped
     ports:
-      - '6380:6379'
+      - '6379:6379'
     networks:
       - nfc-net
 
@@ -56,8 +64,8 @@ services:
     container_name: nfc-mosquitto
     restart: unless-stopped
     ports:
-      - '1884:1883'
-      - '9002:9001'
+      - '1883:1883'
+      - '9001:9001'
     command: mosquitto -c /mosquitto/config/mosquitto.conf
     volumes:
       - ./mosquitto/config:/mosquitto/config

@@ -1,20 +1,33 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import { apiReference } from '@scalar/nestjs-api-reference';
 import { generateDocument } from './openapi/openapi';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
+import { getCleanOrigins } from 'src/utils/cors.utils'; 
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bodyParser: false,
   });
 
+  // ── CORS CONFIGURADO USANDO O UTILITÁRIO ────────────────────────────
+  const corsOrigins = getCleanOrigins(process.env.CORS_ORIGINS);
+
+  app.enableCors({
+    origin: corsOrigins.length > 0 ? corsOrigins : true,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  });
+  // ────────────────────────────────────────────────────────────────────
+
   const httpAdapterHost = app.get(HttpAdapterHost);
+  
   app.useGlobalFilters(
-    new PrismaExceptionFilter(httpAdapterHost),
     new AllExceptionsFilter(httpAdapterHost),
+    new PrismaExceptionFilter(httpAdapterHost),
   );
 
   app.useGlobalPipes(
@@ -24,6 +37,8 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  app.enableShutdownHooks();
 
   const openAPIDocument = await generateDocument(app);
 
@@ -35,6 +50,12 @@ async function bootstrap() {
     }),
   );
 
-  await app.listen(process.env.PORT ?? 3000);
+  const port = process.env.PORT ?? 3000;
+  await app.listen(port);
+  Logger.log(`🚀 NFC API rodando em http://localhost:${port}`, 'Bootstrap');
+  Logger.log(
+    `📚 Documentação (Scalar) em http://localhost:${port}/openapi`,
+    'Bootstrap',
+  );
 }
-bootstrap();
+void bootstrap();

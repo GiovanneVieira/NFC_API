@@ -15,12 +15,17 @@ export const generateDocument = async (app: INestApplication<any>) => {
   const authSection = 'Auth';
 
   if (betterAuthSchema?.paths) {
-    Object.values(betterAuthSchema.paths).forEach((pathItem: any) => {
-      const metodos = ['get', 'post', 'put', 'delete', 'patch'];
+    const metodos = ['get', 'post', 'put', 'delete', 'patch'] as const;
+    const paths = betterAuthSchema.paths as Record<
+      string,
+      Record<string, { tags?: string[] } | undefined>
+    >;
 
+    Object.values(paths).forEach((pathItem) => {
       metodos.forEach((metodo) => {
-        if (pathItem[metodo]) {
-          pathItem[metodo].tags = [authSection];
+        const operation = pathItem[metodo];
+        if (operation) {
+          operation.tags = [authSection];
         }
       });
     });

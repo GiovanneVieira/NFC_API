@@ -1,8 +1,33 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from './prisma-modules/prisma/prisma';
+
+export type HealthStatus = {
+  status: 'ok' | 'degraded';
+  database: 'up' | 'down';
+  timestamp: string;
+};
 
 @Injectable()
 export class AppService {
+  constructor(private readonly prisma: PrismaService) {}
+
   getHello(): string {
     return 'Hello World!';
+  }
+
+  async health(): Promise<HealthStatus> {
+    let database: 'up' | 'down' = 'down';
+    try {
+      await this.prisma.$queryRaw`SELECT 1`;
+      database = 'up';
+    } catch {
+      database = 'down';
+    }
+
+    return {
+      status: database === 'up' ? 'ok' : 'degraded',
+      database,
+      timestamp: new Date().toISOString(),
+    };
   }
 }

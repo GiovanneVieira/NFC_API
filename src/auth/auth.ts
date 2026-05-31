@@ -3,35 +3,37 @@ import { openAPI, jwt } from 'better-auth/plugins';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { Pool } from 'pg';
+import { createTrustedOriginsChecker } from 'src/utils/cors.utils';
 
-const pool = new Pool({
+const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
 });
 
-const adapter = new PrismaPg(pool);
-
 const prisma = new PrismaClient({ adapter });
+const baseURL = process.env.BETTER_AUTH_URL ?? 'http://localhost:3000';
 
 export const auth = betterAuth({
+  baseURL,
+  secret: process.env.BETTER_AUTH_SECRET,
+  
+  // ── INJEÇÃO LIMPA E TRATADA ────────────────────────────────────────
+  trustedOrigins: createTrustedOriginsChecker(process.env.CORS_ORIGINS),
+  
   database: prismaAdapter(prisma, {
     provider: 'postgresql',
   }),
   emailAndPassword: {
     enabled: true,
+    minPasswordLength: 8,
+    autoSignIn: true,
   },
   user: {
     additionalFields: {
-      RA: {
-        type: 'string',
-        required: true,
-        input: true,
-      },
-      role: {
-        type: 'string',
-        required: false,
-        input: true,
-      },
+      RA: { type: 'string', required: true, input: true },
+      role: { type: 'string', required: false, input: true, defaultValue: 'STUDENT' },
+      course: { type: 'string', required: false, input: false },
+      cpf: { type: 'string', required: false, input: false },
+      cardValidity: { type: 'date', required: false, input: false },
     },
   },
   session: {
@@ -46,19 +48,15 @@ export const auth = betterAuth({
     jwt({
       jwt: {
         expiresIn: '15m',
-        issuer: process.env.BETTER_AUTH_URL,
-        audience: process.env.BETTER_AUTH_URL,
-        definePayload: ({ user }) => ({
-          id: user.id,
-          email: user.email,
-          RA: user.RA,
-        }),
+        issuer: baseURL,
+        audience: baseURL,
+        definePayload: ({ user }) => {
+          const u = user as { id: string; email: string; RA?: string };
+          return { id: u.id, email: u.email, RA: u.RA };
+        },
       },
       jwks: {
-        keyPairConfig: {
-          alg: 'EdDSA',
-          crv: 'Ed25519',
-        },
+        keyPairConfig: { alg: 'EdDSA', crv: 'Ed25519' },
         rotationInterval: 60 * 60 * 24 * 30,
         gracePeriod: 60 * 60 * 24 * 7,
       },
