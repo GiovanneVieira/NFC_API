@@ -7,26 +7,43 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Role {
+  STUDENT
+  TEACHER
+}
+
+enum AulaStatus {
+  ABERTA
+  FECHADA
+}
+
+enum PresencaType {
+  NFC
+  QR_CODE
+}
+
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
+  id            String     @id @default(uuid())
+  email         String     @unique
   name          String
   password      String
-  RA            String    @unique
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  emailVerified Boolean   @default(false)
+  RA            String     @unique
+  role          Role       @default(STUDENT)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  emailVerified Boolean    @default(false)
   image         String?
   sessions      Session[]
   accounts      Account[]
-
-  @@map("user")
+  presencas          Presenca[]
+  matriculas         Matricula[]
+  materiasLecionadas Materia[]
 }
 
 model Session {
   id        String   @id
   expiresAt DateTime
-  token     String
+  token     String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   ipAddress String?
@@ -34,9 +51,7 @@ model Session {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([token])
   @@index([userId])
-  @@map("session")
 }
 
 model Account {
@@ -56,7 +71,6 @@ model Account {
   updatedAt             DateTime  @updatedAt
 
   @@index([userId])
-  @@map("account")
 }
 
 model Verification {
@@ -68,5 +82,70 @@ model Verification {
   updatedAt  DateTime @updatedAt
 
   @@index([identifier])
-  @@map("verification")
+}
+
+model Jwks {
+  id         String    @id
+  publicKey  String
+  privateKey String
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime?
+}
+
+model Materia {
+  id          String      @id @default(uuid())
+  codigo      String      @unique
+  nome        String
+  professorId String?
+  professor   User?       @relation(fields: [professorId], references: [id], onDelete: SetNull)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  aulas       Aula[]
+  matriculas  Matricula[]
+
+  @@index([professorId])
+}
+
+model Aula {
+  id        String     @id @default(uuid())
+  materiaId String
+  materia   Materia    @relation(fields: [materiaId], references: [id], onDelete: Cascade)
+  dataHora  DateTime
+  status    AulaStatus @default(ABERTA)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  presencas Presenca[]
+
+  @@index([materiaId])
+}
+
+model Presenca {
+  id        String      @id @default(uuid())
+  alunoId   String
+  aluno     User        @relation(fields: [alunoId], references: [id], onDelete: Cascade)
+  aulaId    String
+  aula      Aula        @relation(fields: [aulaId], references: [id], onDelete: Cascade)
+  data      DateTime    @default(now())
+  type      PresencaType
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@unique([alunoId, aulaId])
+  @@index([alunoId])
+  @@index([aulaId])
+}
+
+model Matricula {
+  id        String   @id @default(uuid())
+  alunoId   String
+  aluno     User     @relation(fields: [alunoId], references: [id], onDelete: Cascade)
+  materiaId String
+  materia   Materia  @relation(fields: [materiaId], references: [id], onDelete: Cascade)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([alunoId, materiaId])
+  @@index([alunoId])
+  @@index([materiaId])
 }

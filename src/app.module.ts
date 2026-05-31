@@ -5,9 +5,10 @@ import { ConfigModule } from '@nestjs/config';
 import { UserModule } from './user/user.module';
 import { AuthModule } from '@thallesp/nestjs-better-auth';
 import { PrismaModule } from './prisma-modules/prisma/prisma.module';
-import { PrismaService } from './prisma-modules/prisma/prisma';
-import { betterAuth } from 'better-auth';
-import { prismaAdapter } from 'better-auth/adapters/prisma';
+import { MateriaModule } from './materia/materia.module';
+import { AulaModule } from './aula/aula.module';
+import { PresencaModule } from './presenca/presenca.module';
+import { MatriculaModule } from './matricula/matricula.module';
 import { auth } from './auth/auth';
 
 @Module({
@@ -18,9 +19,13 @@ import { auth } from './auth/auth';
     }),
     PrismaModule,
     AuthModule.forRoot({
-      auth
+      auth,
     }),
     UserModule,
+    MateriaModule,
+    AulaModule,
+    PresencaModule,
+    MatriculaModule,
   ],
   controllers: [AppController],
   providers: [AppService],
