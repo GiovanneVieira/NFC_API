@@ -6,18 +6,9 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma-modules/prisma/prisma';
 import { PresencaMapper } from 'src/mapper/presencamapper';
-import { PresencaModel } from 'src/model/PresencaModel';
-import { CreatePresencaDTO } from 'src/dto/presenca/CreatePresencaDTO';
+import { PresencaModel, PresencaType } from 'src/model/PresencaModel';
 import { FrequenciaResponseDTO } from 'src/dto/presenca/FrequenciaResponseDTO';
-
-const AULA_SELECT = {
-  id: true,
-  materiaId: true,
-  dataHora: true,
-  status: true,
-  createdAt: true,
-  updatedAt: true,
-} as const;
+import { FaltaResponseDTO } from 'src/dto/presenca/FaltaResponseDTO';
 
 const PRESENCA_SELECT = {
   id: true,
@@ -32,11 +23,6 @@ const PRESENCA_SELECT = {
   },
 } as const;
 
-const MATRICULA_EXISTS_SELECT = {
-  id: true,
-  active: true,
-} as const;
-
 @Injectable()
 export class PresencaService {
   private readonly logger = new Logger(PresencaService.name);
@@ -46,17 +32,21 @@ export class PresencaService {
     private presencaMapper: PresencaMapper,
   ) {}
 
-  async registrarPresenca(dto: CreatePresencaDTO): Promise<PresencaModel> {
+  async registrarPresenca(
+    alunoId: string,
+    aulaId: string,
+    type: PresencaType,
+  ): Promise<PresencaModel> {
     const aula = await this.prismaService.aula.findUnique({
-      where: { id: dto.aulaId },
-      select: AULA_SELECT,
+      where: { id: aulaId },
+      select: { id: true, materiaId: true, status: true },
     });
 
     if (!aula) {
       throw new BadRequestException('Aula não encontrada');
     }
 
-    if ((aula.status as string) === 'FECHADA') {
+    if (aula.status === 'FECHADA') {
       throw new ForbiddenException(
         'Não é possível registrar presença em uma aula fechada',
       );
@@ -65,11 +55,11 @@ export class PresencaService {
     const matricula = await this.prismaService.matricula.findUnique({
       where: {
         alunoId_materiaId: {
-          alunoId: dto.alunoId,
+          alunoId,
           materiaId: aula.materiaId,
         },
       },
-      select: MATRICULA_EXISTS_SELECT,
+      select: { id: true, active: true },
     });
 
     if (!matricula || !matricula.active) {
@@ -78,24 +68,18 @@ export class PresencaService {
 
     const prismaPresenca = await this.prismaService.presenca.upsert({
       where: {
-        alunoId_aulaId: {
-          alunoId: dto.alunoId,
-          aulaId: dto.aulaId,
-        },
+        alunoId_aulaId: { alunoId, aulaId },
       },
-      create: {
-        alunoId: dto.alunoId,
-        aulaId: dto.aulaId,
-        type: dto.type,
-      },
+      create: { alunoId, aulaId, type },
       update: {},
+      select: PRESENCA_SELECT,
     });
 
     this.logger.log(
-      `Presença registrada: aluno=${dto.alunoId} aula=${dto.aulaId} tipo=${dto.type}`,
+      `Presença registrada: aluno=${alunoId} aula=${aulaId} tipo=${type}`,
     );
 
-    return this.presencaMapper.toPresencaModel(prismaPresenca);
+    return this.presencaMapper.toPresencaModelWithAluno(prismaPresenca);
   }
 
   async calcularFrequencia(
@@ -104,45 +88,69 @@ export class PresencaService {
   ): Promise<FrequenciaResponseDTO> {
     const [totalAulasFechadas, totalPresencas] = await Promise.all([
       this.prismaService.aula.count({
-        where: {
-          materiaId,
-          status: 'FECHADA' as const,
-        },
+        where: { materiaId, status: 'FECHADA' },
       }),
       this.prismaService.presenca.count({
         where: {
           alunoId,
-          aula: {
-            materiaId,
-            status: 'FECHADA' as const,
-          },
+          aula: { materiaId, status: 'FECHADA' },
         },
       }),
     ]);
-
-    if (totalAulasFechadas === 0) {
-      return {
-        alunoId,
-        materiaId,
-        totalAulasFechadas: 0,
-        totalPresencas: 0,
-        frequencia: 0,
-      };
-    }
 
     return {
       alunoId,
       materiaId,
       totalAulasFechadas,
       totalPresencas,
-      frequencia: totalPresencas / totalAulasFechadas,
+      frequencia:
+        totalAulasFechadas === 0 ? 0 : totalPresencas / totalAulasFechadas,
     };
+  }
+
+  /** Faltas por matéria do aluno, com limite (tela de Faltas do app). */
+  async calcularFaltasDoAluno(alunoId: string): Promise<FaltaResponseDTO[]> {
+    const matriculas = await this.prismaService.matricula.findMany({
+      where: { alunoId, active: true },
+      select: {
+        materiaId: true,
+        materia: {
+          select: { nome: true, codigo: true, faltaLimite: true },
+        },
+      },
+      orderBy: { materia: { nome: 'asc' } },
+    });
+
+    return Promise.all(
+      matriculas.map(async (m) => {
+        const [totalAulasFechadas, totalPresencas] = await Promise.all([
+          this.prismaService.aula.count({
+            where: { materiaId: m.materiaId, status: 'FECHADA' },
+          }),
+          this.prismaService.presenca.count({
+            where: {
+              alunoId,
+              aula: { materiaId: m.materiaId, status: 'FECHADA' },
+            },
+          }),
+        ]);
+
+        return {
+          materiaId: m.materiaId,
+          materiaNome: m.materia.nome,
+          codigo: m.materia.codigo,
+          faltas: totalAulasFechadas - totalPresencas,
+          limite: m.materia.faltaLimite,
+        };
+      }),
+    );
   }
 
   async listarPresencasPorAula(aulaId: string): Promise<PresencaModel[]> {
     const presencas = await this.prismaService.presenca.findMany({
       where: { aulaId },
       select: PRESENCA_SELECT,
+      orderBy: { data: 'asc' },
     });
 
     return presencas.map((p) =>

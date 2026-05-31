@@ -9,6 +9,7 @@ import { MateriaModule } from './materia/materia.module';
 import { AulaModule } from './aula/aula.module';
 import { PresencaModule } from './presenca/presenca.module';
 import { MatriculaModule } from './matricula/matricula.module';
+import { NotaModule } from './nota/nota.module';
 import { auth } from './auth/auth';
 
 @Module({
@@ -26,6 +27,7 @@ import { auth } from './auth/auth';
     AulaModule,
     PresencaModule,
     MatriculaModule,
+    NotaModule,
   ],
   controllers: [AppController],
   providers: [AppService],

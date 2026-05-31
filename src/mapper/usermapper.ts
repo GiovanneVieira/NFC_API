@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { UserModel, Role } from 'src/model/UserModel';
-import { User as PrismaUser } from '@prisma/client';
 import { UserResponseDTO } from 'src/dto/user/UserResponseDTO';
 
-type UserPublicRow = {
+/** Linha do Prisma com os campos públicos do usuário (sem credenciais). */
+export type UserRow = {
   id: string;
   email: string;
   name: string;
@@ -11,33 +11,27 @@ type UserPublicRow = {
   role: string;
   createdAt: Date;
   updatedAt: Date;
+  course?: string | null;
+  cpf?: string | null;
+  cardValidity?: Date | null;
+  image?: string | null;
 };
 
 @Injectable()
 export class UserMapper {
-  toUserModel(prismaUser: PrismaUser): UserModel {
-    return new UserModel(
-      prismaUser.id,
-      prismaUser.email,
-      prismaUser.name,
-      prismaUser.password,
-      prismaUser.RA,
-      prismaUser.role as Role,
-      prismaUser.createdAt,
-      prismaUser.updatedAt,
-    );
-  }
-
-  toUserModelFromPublicSelect(row: UserPublicRow): UserModel {
+  toUserModel(row: UserRow): UserModel {
     return new UserModel(
       row.id,
       row.email,
       row.name,
-      '',
       row.RA,
       row.role as Role,
       row.createdAt,
       row.updatedAt,
+      row.course ?? null,
+      row.cpf ?? null,
+      row.cardValidity ?? null,
+      row.image ?? null,
     );
   }
 
@@ -46,8 +40,13 @@ export class UserMapper {
       id: userModel.id,
       email: userModel.email,
       name: userModel.name,
+      firstName: userModel.firstName,
       RA: userModel.RA,
       role: userModel.role,
+      course: userModel.course,
+      cpf: userModel.cpf,
+      validity: userModel.cardValidity?.toISOString() ?? null,
+      avatarUrl: userModel.image,
       createdAt: userModel.createdAt.toISOString(),
     };
   }

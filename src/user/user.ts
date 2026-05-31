@@ -1,9 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma-modules/prisma/prisma';
-import { UserRequestDTO } from '../dto/user/UserRequestDTO';
 import { UserMapper } from '../mapper/usermapper';
 import { UserModel } from '../model/UserModel';
-import { hashPassword } from '../utils/hash';
+import { UpdateCarteirinhaDTO } from '../dto/user/UpdateCarteirinhaDTO';
 
 const USER_PUBLIC_SELECT = {
   id: true,
@@ -11,6 +10,10 @@ const USER_PUBLIC_SELECT = {
   name: true,
   RA: true,
   role: true,
+  course: true,
+  cpf: true,
+  cardValidity: true,
+  image: true,
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -22,29 +25,13 @@ export class UserService {
     private userMapper: UserMapper,
   ) {}
 
-  async postUser(userDto: UserRequestDTO): Promise<UserModel> {
-    const prismaUser = await this.prismaService.user.create({
-      data: {
-        email: userDto.email,
-        name: userDto.name,
-        RA: userDto.RA,
-        role: userDto.role,
-        password: await hashPassword(userDto.password),
-      },
-      select: USER_PUBLIC_SELECT,
-    });
-
-    return this.userMapper.toUserModelFromPublicSelect(prismaUser);
-  }
-
   async getAllUsers(): Promise<UserModel[]> {
     const prismaUsers = await this.prismaService.user.findMany({
       select: USER_PUBLIC_SELECT,
+      orderBy: { createdAt: 'desc' },
     });
 
-    return prismaUsers.map((user) =>
-      this.userMapper.toUserModelFromPublicSelect(user),
-    );
+    return prismaUsers.map((user) => this.userMapper.toUserModel(user));
   }
 
   async getUserById(id: string): Promise<UserModel | null> {
@@ -53,33 +40,50 @@ export class UserService {
       select: USER_PUBLIC_SELECT,
     });
 
-    if (!prismaUser) {
-      return null;
-    }
+    return prismaUser ? this.userMapper.toUserModel(prismaUser) : null;
+  }
 
-    return this.userMapper.toUserModelFromPublicSelect(prismaUser);
+  async getUserByIdOrThrow(id: string): Promise<UserModel> {
+    const user = await this.getUserById(id);
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+    return user;
   }
 
   async getUserByEmail(email: string): Promise<UserModel | null> {
     const prismaUser = await this.prismaService.user.findUnique({
       where: { email },
+      select: USER_PUBLIC_SELECT,
     });
 
-    if (!prismaUser) {
-      return null;
-    }
-
-    return this.userMapper.toUserModel(prismaUser);
+    return prismaUser ? this.userMapper.toUserModel(prismaUser) : null;
   }
 
   async getUserByRA(RA: string): Promise<UserModel | null> {
     const prismaUser = await this.prismaService.user.findUnique({
       where: { RA },
+      select: USER_PUBLIC_SELECT,
     });
 
-    if (!prismaUser) {
-      return null;
-    }
+    return prismaUser ? this.userMapper.toUserModel(prismaUser) : null;
+  }
+
+  async updateCarteirinha(
+    id: string,
+    dto: UpdateCarteirinhaDTO,
+  ): Promise<UserModel> {
+    await this.getUserByIdOrThrow(id);
+
+    const prismaUser = await this.prismaService.user.update({
+      where: { id },
+      data: {
+        course: dto.course,
+        cpf: dto.cpf,
+        cardValidity: dto.cardValidity ? new Date(dto.cardValidity) : undefined,
+      },
+      select: USER_PUBLIC_SELECT,
+    });
 
     return this.userMapper.toUserModel(prismaUser);
   }

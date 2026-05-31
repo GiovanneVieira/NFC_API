@@ -1,98 +1,145 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# NFC API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API do projeto **TINCE** — controle acadêmico com presença por **NFC/QR Code**.
+Backend em **NestJS 11 + Prisma 7 (PostgreSQL) + Better Auth**.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Atende ao app (Expo/React Native): carteirinha, aulas, faltas e notas.
 
-## Description
+## Stack
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- **NestJS 11** (REST)
+- **Prisma 7** + PostgreSQL (driver adapter `@prisma/adapter-pg`)
+- **Better Auth** (e-mail/senha + JWT EdDSA) via `@thallesp/nestjs-better-auth`
+- **Scalar** para documentação OpenAPI (`/openapi`)
+- **Jest** (unitários + e2e black-box)
 
-## Project setup
+## Pré-requisitos
 
-```bash
-$ npm install
-```
+- Node.js 22+ (testado com Node 24)
+- PostgreSQL (via Docker recomendado)
 
-## Compile and run the project
+## Configuração
 
-```bash
-# development
-$ npm run start
+1. Copie o `.env.example` para `.env` e preencha:
 
-# watch mode
-$ npm run start:dev
+   ```bash
+   cp .env.example .env
+   ```
 
-# production mode
-$ npm run start:prod
-```
+   Gere um segredo para o Better Auth: `openssl rand -base64 32` → `BETTER_AUTH_SECRET`.
 
-## Run tests
+2. Suba a infraestrutura (Postgres/Redis/Mosquitto) com Docker:
 
-```bash
-# unit tests
-$ npm run test
+   ```bash
+   docker compose up -d postgres
+   ```
 
-# e2e tests
-$ npm run test:e2e
+   > As portas do `docker-compose.yaml` estão alinhadas ao `.env`
+   > (Postgres `5432`, Redis `6379`, MQTT `1883`) para rodar o Nest localmente
+   > pelo terminal acessando os containers via `localhost`.
 
-# test coverage
-$ npm run test:cov
-```
+3. Aplique as migrations e gere o client:
 
-## Deployment
+   ```bash
+   npm run db:dev        # migrate dev (ambiente de desenvolvimento)
+   # ou, contra um banco já migrado:
+   npx prisma migrate deploy
+   ```
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Executando
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm install
+npm run start:dev        # desenvolvimento (watch) — usa .env.development
+npm run build && npm run start:prod   # produção — usa .env.production
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+- API: `http://localhost:3000`
+- Documentação interativa (Scalar): `http://localhost:3000/openapi`
+- Healthcheck: `GET /health` → `{ status, database, timestamp }`
 
-## Resources
+### Popular dados de desenvolvimento (seed)
 
-Check out a few resources that may come in handy when working with NestJS:
+Com a API rodando:
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+```bash
+npm run seed
+```
 
-## Support
+Cria professor + alunos + matérias + matrículas + aulas + presenças + notas.
+Login de teste (senha `senha12345`): `prof@facens.br`, `lucas@facens.br`, `maria@facens.br`.
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## Autenticação
 
-## Stay in touch
+Usa **Better Auth** montado em `/api/auth`. Fluxo:
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+- **Cadastro:** `POST /api/auth/sign-up/email`
+  `{ email, password, name, RA, role }` (`role`: `STUDENT` | `TEACHER`, default `STUDENT`).
+- **Login:** `POST /api/auth/sign-in/email` `{ email, password }`.
+- A sessão é mantida por **cookie**. O JWT (plugin) é exposto pelo Better Auth.
+- **Todas as rotas exigem autenticação por padrão** (guard global). Rotas públicas
+  são marcadas com `@AllowAnonymous()` (`/` e `/health`).
 
-## License
+> **CSRF:** rotas como `sign-in` exigem o header `Origin` pertencente a
+> `TRUSTED_ORIGINS`. Clientes web (Expo web) enviam `Origin` automaticamente;
+> para clientes nativos/scripts, envie um `Origin` confiável.
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+### Papéis (RBAC)
+
+- `TEACHER`: cria matérias/aulas, fecha aulas, matricula/desmatricula alunos,
+  lança notas, atualiza carteirinha, lista usuários.
+- `STUDENT`: acessa apenas os próprios dados (presença própria, suas faltas,
+  suas notas, suas aulas, sua carteirinha).
+
+## Endpoints principais
+
+| Método | Rota | Acesso | Descrição |
+|--------|------|--------|-----------|
+| GET | `/health` | público | Status da API + banco |
+| GET | `/user/me` | autenticado | Dados do usuário logado (carteirinha) |
+| GET | `/user` | TEACHER | Lista usuários |
+| GET | `/user/:id` | autenticado | Usuário por id |
+| PATCH | `/user/:id/carteirinha` | TEACHER | Atualiza curso/CPF/validade |
+| POST | `/materia` | TEACHER | Cria matéria (professor = logado) |
+| GET | `/materia` · `/materia/:id` | autenticado | Lista / detalha matérias |
+| POST | `/aula` | TEACHER | Cria aula |
+| GET | `/aula/me` | autenticado | Aulas das matérias do aluno |
+| GET | `/aula/materia/:materiaId` | autenticado | Aulas de uma matéria |
+| PATCH | `/aula/:id/fechar` | TEACHER | Fecha a aula |
+| POST | `/presenca` | autenticado | Registra presença (aluno = própria) |
+| GET | `/presenca/aula/:aulaId` | TEACHER | Presenças de uma aula |
+| GET | `/presenca/faltas/me` | autenticado | Faltas do aluno por matéria + limite |
+| GET | `/presenca/frequencia/:alunoId/:materiaId` | próprio/TEACHER | Frequência |
+| POST | `/matricula` | TEACHER | Matricula aluno |
+| DELETE | `/matricula/:alunoId/:materiaId` | TEACHER | Desmatricula |
+| GET | `/matricula/aluno/:alunoId` | próprio/TEACHER | Matrículas do aluno |
+| POST | `/nota` | TEACHER | Lança/atualiza notas (upsert por período) |
+| GET | `/nota/me?term=2026/01` | autenticado | Notas do aluno |
+| GET | `/nota/aluno/:alunoId?term=` | próprio/TEACHER | Notas de um aluno |
+
+### Mapeamento com as telas do app
+
+- **Carteirinha** → `GET /user/me` (`name`, `firstName`, `course`, `cpf`, `validity`, `RA`, `avatarUrl`).
+- **Aulas** → `GET /aula/me` (com `materiaNome`, `professorNome`, `sala`, `dataHora`).
+- **Faltas** → `GET /presenca/faltas/me` (`faltas`, `limite` por matéria).
+- **Notas** → `GET /nota/me?term=...` (`ac1`, `ac2`, `af`, `sub`, `ag`, `media`).
+
+## Testes
+
+```bash
+npm test                 # unitários (services/mappers/helpers, Prisma mockado)
+npm run test:cov         # com cobertura
+npm run build            # compila (necessário antes do e2e)
+npm run test:e2e         # e2e black-box: sobe o build em :3999 e exercita o fluxo via HTTP
+```
+
+> O e2e sobe a aplicação real em um processo separado (porta `3999`) e testa
+> o fluxo completo (auth, RBAC, matrícula, aula, presença, faltas, notas).
+> Requer `npm run build` e um Postgres acessível pela `DATABASE_URL`.
+
+## Integração NFC/MQTT
+
+O broker MQTT (`MQTT_BROKER_URL`) está previsto para receber leituras do leitor
+NFC físico. O registro de presença já está disponível por HTTP em `POST /presenca`
+(`type: NFC | QR_CODE`); a ponte MQTT → `PresencaService` é o próximo passo de
+integração com o hardware.

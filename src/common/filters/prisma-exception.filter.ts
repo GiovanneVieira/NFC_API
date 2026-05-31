@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import { Response, Request } from 'express';
+import { Prisma } from '@prisma/client';
 
 const PRISMA_ERROR_MAP: Record<
   string,
@@ -31,40 +32,47 @@ const PRISMA_ERROR_MAP: Record<
   },
 };
 
-function isPrismaError(
-  exception: unknown,
-): exception is Error & { code: string } {
-  return (
-    exception instanceof Error &&
-    'code' in exception &&
-    typeof exception.code === 'string' &&
-    (exception as Error & { code: string }).code.startsWith('P')
-  );
-}
+type PrismaError =
+  | Prisma.PrismaClientKnownRequestError
+  | Prisma.PrismaClientValidationError
+  | Prisma.PrismaClientUnknownRequestError
+  | Prisma.PrismaClientInitializationError
+  | Prisma.PrismaClientRustPanicError;
 
-@Catch()
+@Catch(
+  Prisma.PrismaClientKnownRequestError,
+  Prisma.PrismaClientValidationError,
+  Prisma.PrismaClientUnknownRequestError,
+  Prisma.PrismaClientInitializationError,
+  Prisma.PrismaClientRustPanicError,
+)
 export class PrismaExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(PrismaExceptionFilter.name);
 
   constructor(private readonly httpAdapterHost: HttpAdapterHost) {}
 
-  catch(exception: unknown, host: ArgumentsHost): void {
-    if (!isPrismaError(exception)) {
-      throw exception;
-    }
-
+  catch(exception: PrismaError, host: ArgumentsHost): void {
     const { httpAdapter } = this.httpAdapterHost;
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    const mapped = PRISMA_ERROR_MAP[exception.code];
+    let statusCode: number = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message = 'Erro interno no banco de dados';
 
-    const statusCode = mapped?.statusCode ?? HttpStatus.INTERNAL_SERVER_ERROR;
-    const message = mapped?.message ?? 'Erro interno no banco de dados';
+    if (exception instanceof Prisma.PrismaClientKnownRequestError) {
+      const mapped = PRISMA_ERROR_MAP[exception.code];
+      if (mapped) {
+        statusCode = mapped.statusCode;
+        message = mapped.message;
+      }
+    } else if (exception instanceof Prisma.PrismaClientValidationError) {
+      statusCode = HttpStatus.BAD_REQUEST;
+      message = 'Dados inválidos para a operação no banco de dados';
+    }
 
     this.logger.error(
-      `Prisma error ${exception.code} | ${request.method} ${request.url} | ${exception.message}`,
+      `Prisma error | ${request.method} ${request.url} | ${exception.message.split('\n').pop()?.trim()}`,
     );
 
     httpAdapter.reply(

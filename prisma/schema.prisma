@@ -23,21 +23,27 @@ enum PresencaType {
 }
 
 model User {
-  id            String     @id @default(uuid())
-  email         String     @unique
+  id            String   @id @default(uuid())
+  email         String   @unique
   name          String
-  password      String
-  RA            String     @unique
-  role          Role       @default(STUDENT)
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  emailVerified Boolean    @default(false)
+  RA            String   @unique
+  role          Role     @default(STUDENT)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  emailVerified Boolean  @default(false)
   image         String?
-  sessions      Session[]
-  accounts      Account[]
+
+  // Dados da carteirinha estudantil (preenchidos pela instituição, não no sign-up).
+  course       String?
+  cpf          String?   @unique
+  cardValidity DateTime?
+
+  sessions           Session[]
+  accounts           Account[]
   presencas          Presenca[]
   matriculas         Matricula[]
   materiasLecionadas Materia[]
+  notas              Nota[]
 }
 
 model Session {
@@ -98,10 +104,13 @@ model Materia {
   nome        String
   professorId String?
   professor   User?       @relation(fields: [professorId], references: [id], onDelete: SetNull)
+  // Limite de faltas permitido na matéria (usado na tela de Faltas do app).
+  faltaLimite Int?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   aulas       Aula[]
   matriculas  Matricula[]
+  notas       Nota[]
 
   @@index([professorId])
 }
@@ -111,6 +120,8 @@ model Aula {
   materiaId String
   materia   Materia    @relation(fields: [materiaId], references: [id], onDelete: Cascade)
   dataHora  DateTime
+  // Sala onde a aula acontece (exibida na tela de Aulas do app).
+  sala      String?
   status    AulaStatus @default(ABERTA)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
@@ -120,15 +131,15 @@ model Aula {
 }
 
 model Presenca {
-  id        String      @id @default(uuid())
+  id        String       @id @default(uuid())
   alunoId   String
-  aluno     User        @relation(fields: [alunoId], references: [id], onDelete: Cascade)
+  aluno     User         @relation(fields: [alunoId], references: [id], onDelete: Cascade)
   aulaId    String
-  aula      Aula        @relation(fields: [aulaId], references: [id], onDelete: Cascade)
-  data      DateTime    @default(now())
+  aula      Aula         @relation(fields: [aulaId], references: [id], onDelete: Cascade)
+  data      DateTime     @default(now())
   type      PresencaType
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
   @@unique([alunoId, aulaId])
   @@index([alunoId])
@@ -146,6 +157,29 @@ model Matricula {
   updatedAt DateTime @updatedAt
 
   @@unique([alunoId, materiaId])
+  @@index([alunoId])
+  @@index([materiaId])
+}
+
+// Notas/avaliações de um aluno em uma matéria, por período letivo (term, ex.: "2026/01").
+// Reflete as colunas da tela de Notas do app (AC1, AC2, AF, Sub, AG, Média).
+model Nota {
+  id        String   @id @default(uuid())
+  alunoId   String
+  aluno     User     @relation(fields: [alunoId], references: [id], onDelete: Cascade)
+  materiaId String
+  materia   Materia  @relation(fields: [materiaId], references: [id], onDelete: Cascade)
+  term      String
+  ac1       Float?
+  ac2       Float?
+  af        Float?
+  sub       Float?
+  ag        Float?
+  media     Float?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([alunoId, materiaId, term])
   @@index([alunoId])
   @@index([materiaId])
 }
