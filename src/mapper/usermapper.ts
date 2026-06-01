@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { UserModel, Role } from 'src/model/UserModel';
 import { UserResponseDTO } from 'src/dto/user/UserResponseDTO';
 
-/** Linha do Prisma com os campos públicos do usuário (sem credenciais). */
+/** Linha do Prisma com os campos publicos do usuario (sem credenciais). */
 export type UserRow = {
   id: string;
   email: string;
@@ -11,6 +11,7 @@ export type UserRow = {
   role: string;
   createdAt: Date;
   updatedAt: Date;
+  nfcUid?: string | null;
   course?: string | null;
   cpf?: string | null;
   cardValidity?: Date | null;
@@ -28,6 +29,7 @@ export class UserMapper {
       row.role as Role,
       row.createdAt,
       row.updatedAt,
+      row.nfcUid ?? null,
       row.course ?? null,
       row.cpf ?? null,
       row.cardValidity ?? null,

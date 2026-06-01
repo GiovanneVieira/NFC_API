@@ -12,6 +12,7 @@ export class UserModel {
     public readonly role: Role,
     public readonly createdAt: Date,
     public readonly updatedAt: Date,
+    public readonly nfcUid: string | null = null,
     public readonly course: string | null = null,
     public readonly cpf: string | null = null,
     public readonly cardValidity: Date | null = null,

@@ -5,10 +5,14 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma-modules/prisma/prisma';
+import { RedisService } from 'src/redis/redis.service';
 import { PresencaMapper } from 'src/mapper/presencamapper';
 import { PresencaModel, PresencaType } from 'src/model/PresencaModel';
 import { FrequenciaResponseDTO } from 'src/dto/presenca/FrequenciaResponseDTO';
 import { FaltaResponseDTO } from 'src/dto/presenca/FaltaResponseDTO';
+
+const DEBOUNCE_TTL_MS = 3000;
+const AULA_CACHE_TTL_MS = 300_000;
 
 const PRESENCA_SELECT = {
   id: true,
@@ -29,6 +33,7 @@ export class PresencaService {
 
   constructor(
     private prismaService: PrismaService,
+    private redisService: RedisService,
     private presencaMapper: PresencaMapper,
   ) {}
 
@@ -156,5 +161,58 @@ export class PresencaService {
     return presencas.map((p) =>
       this.presencaMapper.toPresencaModelWithAluno(p),
     );
+  }
+
+  async registrarViaNfcHardware(
+    cardUid: string,
+    receptorId: string,
+  ): Promise<PresencaModel | null> {
+    const debounceKey = `debounce:nfc:${cardUid}:${receptorId}`;
+    const acquired = await this.redisService.set(
+      debounceKey,
+      '1',
+      DEBOUNCE_TTL_MS,
+    );
+    if (!acquired) {
+      this.logger.warn(
+        `Debounce ativo | cardUid=${cardUid} | receptorId=${receptorId}`,
+      );
+      return null;
+    }
+
+    const aluno = await this.prismaService.user.findFirst({
+      where: { nfcUid: cardUid },
+      select: { id: true },
+    });
+
+    if (!aluno) {
+      this.logger.warn(`Nenhum aluno encontrado para nfcUid=${cardUid}`);
+      return null;
+    }
+
+    const aulaCacheKey = `aula:ativa:${receptorId}`;
+    let aulaId: string | null = await this.redisService.get(aulaCacheKey);
+
+    if (!aulaId) {
+      const aula = await this.prismaService.aula.findFirst({
+        where: { sala: receptorId, status: 'ABERTA' },
+        select: { id: true },
+        orderBy: { dataHora: 'desc' },
+      });
+
+      if (!aula) {
+        this.logger.warn(`Nenhuma aula aberta para sala=${receptorId}`);
+        return null;
+      }
+
+      aulaId = aula.id;
+      await this.redisService.set(aulaCacheKey, aulaId, AULA_CACHE_TTL_MS);
+    }
+
+    this.logger.log(
+      `Registro NFC | alunoId=${aluno.id} aulaId=${aulaId} sala=${receptorId}`,
+    );
+
+    return this.registrarPresenca(aluno.id, aulaId, PresencaType.NFC);
   }
 }

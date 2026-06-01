@@ -32,6 +32,7 @@ model User {
   emailVerified Boolean   @default(false)
   image         String?
 
+  nfcUid        String?   @unique
   // Dados da carteirinha estudantil (preenchidos pela instituição, não no sign-up).
   course        String?
   cpf           String?   @unique

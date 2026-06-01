@@ -3,7 +3,7 @@ import { openAPI, jwt } from 'better-auth/plugins';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { getCleanOrigins } from 'src/utils/cors.utils'; 
+import { getCleanOrigins } from 'src/utils/cors.utils';
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
@@ -16,15 +16,15 @@ const isDevelopment = process.env.NODE_ENV === 'development';
 export const auth = betterAuth({
   baseURL,
   secret: process.env.BETTER_AUTH_SECRET,
-  
+
   // Array estrito de strings para validação de tipos
   trustedOrigins: getCleanOrigins(process.env.CORS_ORIGINS),
-  
+
   // Controle de segurança condicional
   advanced: {
     disableOriginCheck: isDevelopment, // true em dev (libera Expo), false em prod (blindagem máxima)
   },
-  
+
   database: prismaAdapter(prisma, {
     provider: 'postgresql',
   }),
@@ -36,7 +36,12 @@ export const auth = betterAuth({
   user: {
     additionalFields: {
       RA: { type: 'string', required: true, input: true },
-      role: { type: 'string', required: false, input: true, defaultValue: 'STUDENT' },
+      role: {
+        type: 'string',
+        required: false,
+        input: true,
+        defaultValue: 'STUDENT',
+      },
       course: { type: 'string', required: false, input: false },
       cpf: { type: 'string', required: false, input: false },
       cardValidity: { type: 'date', required: false, input: false },
