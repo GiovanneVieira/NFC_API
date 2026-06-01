@@ -13,12 +13,17 @@ const prisma = new PrismaClient({ adapter });
 const baseURL = process.env.BETTER_AUTH_URL ?? 'http://localhost:3000';
 const isDevelopment = process.env.NODE_ENV === 'development';
 
+const trustedOrigins = getCleanOrigins(process.env.CORS_ORIGINS);
+if (baseURL && !trustedOrigins.includes(baseURL)) {
+  trustedOrigins.push(baseURL);
+}
+
 export const auth = betterAuth({
   baseURL,
   secret: process.env.BETTER_AUTH_SECRET,
 
   // Array estrito de strings para validação de tipos
-  trustedOrigins: getCleanOrigins(process.env.CORS_ORIGINS),
+  trustedOrigins,
 
   // Controle de segurança condicional
   advanced: {

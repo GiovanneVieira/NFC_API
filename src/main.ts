@@ -20,13 +20,39 @@ async function bootstrap() {
     options: { url: mqttBrokerUrl },
   });
 
-  const isDevelopment = process.env.NODE_ENV === 'development';
+const isDevelopment = process.env.NODE_ENV === 'development';
   const corsOrigins = getCleanOrigins(process.env.CORS_ORIGINS);
+  const backendUrl = process.env.BETTER_AUTH_URL;
 
   app.enableCors({
-    origin: isDevelopment ? true : corsOrigins.length > 0 ? corsOrigins : true,
+    origin: (origin, callback) => {
+      // 1. Se não houver origin (caso do APK Nativo em produção), libera.
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      // 2. Se estiver em ambiente de desenvolvimento, libera qualquer origin.
+      if (isDevelopment) {
+        return callback(null, true);
+      }
+
+      // 3. Em produção, valida contra o .env + a própria URL do backend
+      const allowedOrigins = [...corsOrigins];
+      if (backendUrl) {
+        allowedOrigins.push(backendUrl);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        // Log para ajudar a rastrear se alguma origin inesperada for bloqueada
+        Logger.warn(`Origem bloqueada pelo CORS: ${origin}`, 'CORS');
+        callback(new Error('Bloqueado pelo CORS global do NestJS'));
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Requested-With'],
   });
 
   const httpAdapterHost = app.get(HttpAdapterHost);
