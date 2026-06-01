@@ -43,4 +43,4 @@ COPY --from=builder /app/prisma ./prisma
 EXPOSE 3000
 
 # Executa a aplicação usando o Node de forma nativa e performática
-CMD ["node", "dist/main"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]
