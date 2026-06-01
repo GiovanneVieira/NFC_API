@@ -9,8 +9,8 @@ RUN apk add --no-cache libc6-compat
 # Copia os ficheiros de dependências
 COPY package*.json ./
 
-# Instala todas as dependências (incluindo as de desenvolvimento para poder compilar)
-RUN npm ci
+# ALTERAÇÃO AQUI: Mudamos de 'npm ci' para 'npm install' para ser mais tolerante com o lockfile
+RUN npm install
 
 # Copia a pasta do Prisma e gera o Prisma Client
 COPY prisma ./prisma/
@@ -42,5 +42,5 @@ COPY --from=builder /app/prisma ./prisma
 # Expõe a porta padrão que o Render vai mapear
 EXPOSE 3000
 
-# Executa a aplicação usando o Node de forma nativa e performática
+# ALTERAÇÃO AQUI: Roda as migrações do Prisma e depois inicia o NestJS
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]
