@@ -30,7 +30,6 @@ FROM node:22-alpine AS runner
 
 WORKDIR /app
 
-# Define o ambiente como produção
 ENV NODE_ENV=production
 
 # Copia apenas o código compilado e as dependências limpas do estágio anterior
@@ -39,8 +38,9 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
-# Expõe a porta padrão que o Render vai mapear
+# 🚀 ADICIONE ESTA LINHA AQUI EMBAIXO:
+COPY --from=builder /app/prisma.config.ts ./
+
 EXPOSE 3000
 
-# ALTERAÇÃO AQUI: Roda as migrações do Prisma e depois inicia o NestJS
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]
